@@ -39,12 +39,18 @@ jobs:
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip
           mkdir -p cmdline-tools/latest
-          mv cmdline-tools/bin cmdline-tools/latest/
-          mv cmdline-tools/lib cmdline-tools/latest/
+          mv cmdline-tools/bin cmdline-tools/latest/ 2>/dev/null || true
+          mv cmdline-tools/lib cmdline-tools/latest/ 2>/dev/null || true
+          mv cmdline-tools/NOTICE.txt cmdline-tools/latest/ 2>/dev/null || true
+          mv cmdline-tools/source.properties cmdline-tools/latest/ 2>/dev/null || true
           export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+          
+          # 自动接受所有许可证
           yes | sdkmanager --licenses > /dev/null 2>&1
-          sdkmanager "platforms;android-33" "ndk;25.1.8937393" "build-tools;33.0.2"
+          
+          # 安装必要的组件
+          sdkmanager --install "platforms;android-33" "build-tools;33.0.2" "ndk;25.1.8937393" "platform-tools"
 
       - name: Build APK
         env:
