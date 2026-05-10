@@ -1,0 +1,60 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip ccache autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev git wget unzip
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip wheel setuptools
+          pip install buildozer==1.5.0 cython==0.29.33
+          pip install kivy==2.2.0 pillow qrcode[pil]
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Download Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk
+          cd $HOME/android-sdk
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mkdir -p cmdline-tools/latest
+          mv cmdline-tools/bin cmdline-tools/latest/
+          mv cmdline-tools/lib cmdline-tools/latest/
+          export ANDROID_HOME=$HOME/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          sdkmanager "platforms;android-33" "ndk;25.1.8937393" "build-tools;33.0.2"
+
+      - name: Build APK
+        env:
+          ANDROID_HOME: $HOME/android-sdk
+          ANDROID_NDK_HOME: $HOME/android-sdk/ndk/25.1.8937393
+        run: buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: lamaqi.apk
+          path: bin/*.apk
+          retention-days: 7
