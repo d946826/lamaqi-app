@@ -32,31 +32,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Accept Android SDK licenses
+      - name: Setup Android SDK
         run: |
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          # 删除 buildozer 自己的 SDK 目录
+          rm -rf $HOME/.buildozer
+          
+          # 创建符号链接，使用 GitHub Actions 的 SDK
+          mkdir -p $HOME/.buildozer/android/platform
+          ln -sf /usr/local/lib/android/sdk $HOME/.buildozer/android/platform/android-sdk
+          ln -sf /usr/local/lib/android/sdk/ndk/27.3.13750724 $HOME/.buildozer/android/platform/android-ndk-r28c
+          
+          # 接受许可证
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Build APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.3.13750724
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-          BUILDZOOZER_SDK_ROOT: /usr/local/lib/android/sdk
-          BUILDZOOZER_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.3.13750724
-          BUILDZOOZER_ANDROID_API: 33
-          BUILDZOOZER_ANDROID_NDK_API: 27
         run: |
-          # 使用 GitHub Actions 自带的 SDK 路径
-          export ANDROID_HOME=/usr/local/lib/android/sdk
-          export ANDROID_NDK_ROOT=/usr/local/lib/android/sdk/ndk/27.3.13750724
-          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
-          
-          # 创建符号链接，让 buildozer 能找到 SDK
-          mkdir -p $HOME/.buildozer/android/platform
-          ln -sf $ANDROID_SDK_ROOT $HOME/.buildozer/android/platform/android-sdk 2>/dev/null || true
-          ln -sf $ANDROID_NDK_ROOT $HOME/.buildozer/android/platform/android-ndk-r28c 2>/dev/null || true
-          
-          # 运行 buildozer
           buildozer android debug
 
       - name: Upload APK
