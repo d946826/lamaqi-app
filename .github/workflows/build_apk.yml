@@ -20,25 +20,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip ccache autoconf libtool pkg-config zlib1g-dev libncurses5-dev libffi-dev libssl-dev git wget unzip
 
-      - name: Install Python dependencies (with retry)
+      - name: Install Python dependencies
         run: |
           pip install --upgrade pip wheel setuptools
-          
-          # 使用重试机制安装依赖
-          for i in 1 2 3; do
-            pip install --no-cache-dir buildozer==1.5.0 && break
-            sleep 5
-          done
-          
-          for i in 1 2 3; do
-            pip install --no-cache-dir cython==0.29.33 && break
-            sleep 5
-          done
-          
-          for i in 1 2 3; do
-            pip install --no-cache-dir kivy==2.2.0 pillow qrcode[pil] && break
-            sleep 5
-          done
+          pip install buildozer==1.5.0 cython==0.29.33
+          pip install kivy==2.2.0 pillow qrcode[pil]
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -52,33 +38,29 @@ jobs:
           rm -rf $HOME/.buildozer
           mkdir -p $HOME/.buildozer/android/platform
           
-          # 预先下载 ANT
+          # 下载 ANT
           cd $HOME/.buildozer/android/platform
-          for i in 1 2 3; do
-            wget -q https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.4-bin.tar.gz && break
-            sleep 5
-          done
+          wget -q https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.4-bin.tar.gz
           tar -xzf apache-ant-1.9.4-bin.tar.gz
           
-          # 预先下载并设置 Android SDK cmdline-tools
+          # 下载并安装 Android SDK cmdline-tools
           mkdir -p $HOME/.buildozer/android/platform/android-sdk
           cd $HOME/.buildozer/android/platform/android-sdk
-          for i in 1 2 3; do
-            wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip && break
-            sleep 5
-          done
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools/bin cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/lib cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/NOTICE.txt cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/source.properties cmdline-tools/latest/ 2>/dev/null || true
-          yes | cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # 返回项目目录
+          # 关键：创建 tools/bin 软链接，让 buildozer 能找到
+          mkdir -p tools
+          mv cmdline-tools tools/latest
+          
+          # 接受许可证
+          yes | tools/latest/bin/sdkmanager --licenses || true
+          
+          # 安装必要的 SDK 组件
+          tools/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.2"
+          
+          # 返回项目目录并构建
           cd $HOME/work/lamaqi-app/lamaqi-app
-          
-          # 运行 buildozer
           buildozer android debug
 
       - name: Upload APK
