@@ -32,23 +32,22 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Accept all Android licenses
+      - name: Build APK
         run: |
-          # 接受 GitHub Actions SDK 的许可证
-          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # 同时下载 ANT（buildozer 需要）
+          # 关键：删除 buildozer 目录，让它重新开始
+          rm -rf $HOME/.buildozer
           mkdir -p $HOME/.buildozer/android/platform
+          
+          # 预先下载 ANT（避免下载失败）
           cd $HOME/.buildozer/android/platform
           wget -q https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.4-bin.tar.gz
           tar -xzf apache-ant-1.9.4-bin.tar.gz
-
-      - name: Build APK
-        run: |
-          # 先创建 SDK 目录并接受许可证
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk
           
-          # 下载并安装 cmdline-tools
+          # 返回项目目录
+          cd $HOME/work/lamaqi-app/lamaqi-app
+          
+          # 接受许可证
+          mkdir -p $HOME/.buildozer/android/platform/android-sdk
           cd $HOME/.buildozer/android/platform/android-sdk
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip
@@ -57,11 +56,9 @@ jobs:
           mv cmdline-tools/lib cmdline-tools/latest/ 2>/dev/null || true
           mv cmdline-tools/NOTICE.txt cmdline-tools/latest/ 2>/dev/null || true
           mv cmdline-tools/source.properties cmdline-tools/latest/ 2>/dev/null || true
-          
-          # 接受许可证
           yes | cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # 返回项目目录并构建
+          # 返回项目并构建
           cd $HOME/work/lamaqi-app/lamaqi-app
           buildozer android debug
 
