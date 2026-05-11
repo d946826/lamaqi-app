@@ -50,9 +50,17 @@ jobs:
           unzip -q latest.zip
           mv cmdline-tools latest
           
+          # 关键：创建软链接，让 buildozer 能找到 sdkmanager
+          cd $HOME/.buildozer/android/platform/android-sdk
+          mkdir -p tools/bin
+          ln -sf ../cmdline-tools/latest/bin/sdkmanager tools/bin/sdkmanager
+          ln -sf ../cmdline-tools/latest/bin/sdkbuild-tools tools/bin/sdkbuild-tools || true
+          ln -sf ../cmdline-tools/latest/bin/apksigner tools/bin/apksigner || true
+          ln -sf ../cmdline-tools/latest/bin/d8 tools/bin/d8 || true
+          
           # 设置环境变量
           export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
           
           # 接受许可证
           yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses || true
