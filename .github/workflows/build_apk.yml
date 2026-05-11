@@ -32,31 +32,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Download Android SDK
+      - name: Accept Android SDK licenses
         run: |
-          mkdir -p $HOME/android-sdk
-          cd $HOME/android-sdk
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mkdir -p cmdline-tools/latest
-          mv cmdline-tools/bin cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/lib cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/NOTICE.txt cmdline-tools/latest/ 2>/dev/null || true
-          mv cmdline-tools/source.properties cmdline-tools/latest/ 2>/dev/null || true
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-          
-          # 自动接受所有许可证
-          yes | sdkmanager --licenses > /dev/null 2>&1
-          
-          # 安装必要的组件
-          sdkmanager --install "platforms;android-33" "build-tools;33.0.2" "ndk;25.1.8937393" "platform-tools"
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Build APK
         env:
-          ANDROID_HOME: $HOME/android-sdk
-          ANDROID_NDK_HOME: $HOME/android-sdk/ndk/25.1.8937393
-        run: buildozer android debug
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.3.13750724
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          BUILDZOOZER_SDK_ROOT: /usr/local/lib/android/sdk
+          BUILDZOOZER_NDK_ROOT: /usr/local/lib/android/sdk/ndk/27.3.13750724
+          BUILDZOOZER_ANDROID_API: 33
+          BUILDZOOZER_ANDROID_NDK_API: 27
+        run: |
+          # 使用 GitHub Actions 自带的 SDK 路径
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_NDK_ROOT=/usr/local/lib/android/sdk/ndk/27.3.13750724
+          export ANDROID_SDK_ROOT=/usr/local/lib/android/sdk
+          
+          # 创建符号链接，让 buildozer 能找到 SDK
+          mkdir -p $HOME/.buildozer/android/platform
+          ln -sf $ANDROID_SDK_ROOT $HOME/.buildozer/android/platform/android-sdk 2>/dev/null || true
+          ln -sf $ANDROID_NDK_ROOT $HOME/.buildozer/android/platform/android-ndk-r28c 2>/dev/null || true
+          
+          # 运行 buildozer
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
