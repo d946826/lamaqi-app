@@ -1,4 +1,5 @@
 [app]
+
 title = 拉码器
 package.name = lamaqi
 package.domain = org.sniffconverter
@@ -20,3 +21,6 @@ android.presplash_filename = presplash.png
 # 构建相关配置
 android.archs = arm64-v8a, armeabi-v7a
 fullscreen = 0
+
+# Android SDK 配置 - 解决许可证问题
+android.accept_sdk_license = True
