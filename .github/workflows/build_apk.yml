@@ -34,42 +34,48 @@ jobs:
 
       - name: Build APK
         run: |
+          # 使用绝对路径
+          BUILDOZER_HOME=/home/runner/.buildozer
+          SDK_HOME=$BUILDOZER_HOME/android/platform/android-sdk
+          
           # 清理旧的 buildozer 目录
-          rm -rf $HOME/.buildozer
-          mkdir -p $HOME/.buildozer/android/platform
+          rm -rf $BUILDOZER_HOME
+          mkdir -p $BUILDOZER_HOME/android/platform
           
           # 下载 ANT
-          cd $HOME/.buildozer/android/platform
+          cd $BUILDOZER_HOME/android/platform
           wget -q https://archive.apache.org/dist/ant/binaries/apache-ant-1.9.4-bin.tar.gz
           tar -xzf apache-ant-1.9.4-bin.tar.gz
           
           # 下载并安装 Android SDK cmdline-tools
-          mkdir -p $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
-          cd $HOME/.buildozer/android/platform/android-sdk/cmdline-tools
+          mkdir -p $SDK_HOME/cmdline-tools
+          cd $SDK_HOME/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O latest.zip
           unzip -q latest.zip
           mv cmdline-tools latest
           
-          # 关键：创建软链接，让 buildozer 能找到 sdkmanager
-          cd $HOME/.buildozer/android/platform/android-sdk
+          # 关键：创建 tools/bin 软链接，让 buildozer 能找到
+          cd $SDK_HOME
           mkdir -p tools/bin
           ln -sf ../cmdline-tools/latest/bin/sdkmanager tools/bin/sdkmanager
           ln -sf ../cmdline-tools/latest/bin/sdkbuild-tools tools/bin/sdkbuild-tools || true
           ln -sf ../cmdline-tools/latest/bin/apksigner tools/bin/apksigner || true
           ln -sf ../cmdline-tools/latest/bin/d8 tools/bin/d8 || true
+          ln -sf ../cmdline-tools/latest/bin/aapt2 tools/bin/aapt2 || true
+          ln -sf ../cmdline-tools/latest/bin/aapt tools/bin/aapt || true
           
-          # 设置环境变量
-          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
+          # 验证软链接
+          ls -la $SDK_HOME/tools/bin/
           
           # 接受许可证
-          yes | sdkmanager --sdk_root=$ANDROID_HOME --licenses || true
+          export ANDROID_HOME=$SDK_HOME
+          yes | $SDK_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_HOME --licenses || true
           
           # 安装必要的 SDK 组件
-          sdkmanager --sdk_root=$ANDROID_HOME "platforms;android-33" "build-tools;33.0.2"
+          $SDK_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK_HOME "platforms;android-33" "build-tools;33.0.2"
           
           # 返回项目目录并构建
-          cd $HOME/work/lamaqi-app/lamaqi-app
+          cd /home/runner/work/lamaqi-app/lamaqi-app
           buildozer android debug
 
       - name: Upload APK
